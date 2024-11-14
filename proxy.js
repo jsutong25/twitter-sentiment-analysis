@@ -4,10 +4,10 @@ import axios from 'axios';
 const app = express();
 const PORT = 3000;
 
-const BEARER_TOKEN = 'AAAAAAAAAAAAAAAAAAAAAAi2wwEAAAAART2r5k%2FUovCdTDUFR%2FppJ7W9Ucw%3DbdtsLVaXAuoT5Dlv4DyUF6lzY2QrajwX7CTvOrbP3UbnyWnuBV';
+const BEARER_TOKEN = 'YOUR_TWITTER_BEARER_TOKEN';
 
 const HF_API_URL = 'https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment';
-const HF_API_TOKEN = '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';
+const HF_API_TOKEN = 'YOUR_HF_API_TOKEN';
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
