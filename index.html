@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Sentiment Analysis</title>
+    <link rel="stylesheet" href="./output.css">
+    <link rel="shortcut icon" href="./assets/favicon.ico" type="image/x-icon">
+</head>
+<body class="w-full">
+    <div class="mt-10 flex justify-center">
+        <div class="w-full">
+            <div class="flex flex-col w-72 mx-auto">
+                <div class="flex flex-row justify-center items-start">
+                    <svg class="" xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 18">
+                        <path fill="currentColor" d="M17.751 3h3.067l-6.7 7.625L22 21h-6.172l-4.833-6.293L5.464 21h-3.07l7.167-8.155L2 3h6.328l4.37 5.752zm-1.076 16.172h1.7L7.404 4.732H5.58z"/>
+                    </svg> 
+                    <h1 class="font-bold text-2xl mb-10 mx-2">
+                        Sentiment Analysis
+                    </h1>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 1024 900"><path fill="currentColor" d="M288 421a48 48 0 1 0 96 0a48 48 0 1 0-96 0zm352 0a48 48 0 1 0 96 0a48 48 0 1 0-96 0zM512 64C264.6 64 64 264.6 64 512s200.6 448 448 448s448-200.6 448-448S759.4 64 512 64zm263 711c-34.2 34.2-74 61-118.3 79.8C611 874.2 562.3 884 512 884c-50.3 0-99-9.8-144.8-29.2A370.4 370.4 0 0 1 248.9 775c-34.2-34.2-61-74-79.8-118.3C149.8 611 140 562.3 140 512s9.8-99 29.2-144.8A370.4 370.4 0 0 1 249 248.9c34.2-34.2 74-61 118.3-79.8C413 149.8 461.7 140 512 140c50.3 0 99 9.8 144.8 29.2A370.4 370.4 0 0 1 775.1 249c34.2 34.2 61 74 79.8 118.3C874.2 413 884 461.7 884 512s-9.8 99-29.2 144.8A368.89 368.89 0 0 1 775 775zM664 565H360c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h304c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8z"/></svg>
+                </div>
+
+                <input class="bg-transparent rounded-md border border-stroke py-[10px] px-5 text-dark-6 outline-none transition focus:border-blue-400 active:border-blue-400" type="text" id="searchQuery" placeholder="Enter keyword">
+                <button class="bg-black mt-5 border-dark border rounded-md inline-flex items-center justify-center py-3 px-7 text-center text-base font-medium text-white hover:bg-gray-900 hover:border-blue-400 gap-2" id="searchButton">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.783 18.828a8.046 8.046 0 0 0 7.439-4.955a8.034 8.034 0 0 0-1.737-8.765a8.045 8.045 0 0 0-13.735 5.68c0 2.131.846 4.174 2.352 5.681a8.046 8.046 0 0 0 5.68 2.359m5.706-2.337l4.762 4.759"/></svg>
+                    Search
+                </button>
+            </div>
+
+            <div class="mt-10 w-[80%] mx-auto" id="results">
+                <h2 class="text-center font-bold text-2xl mb-5">Results:</h2>
+                <div id="tweets"></div>
+                <div id="sentimentSummary"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('searchButton').addEventListener('click', async () => {
+            const query = document.getElementById('searchQuery').value;
+            if (!query) {
+                alert('Please enter a keyword to search.');
+                return;
+            }
+
+            const tweets = await fetchTweets(query);
+            const sentiments = await analyzeSentiments(tweets);
+            displayResults(tweets, sentiments);
+        });
+
+        async function fetchTweets(query) {
+            const url = `http://localhost:3000/tweets?q=${encodeURIComponent(query)}`;
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                alert('Failed to fetch tweets. Please check the backend proxy.');
+                return [];
+            }
+
+            const data = await response.json();
+            return data.data || [];
+        }
+
+        async function analyzeSentiments(tweets) {
+            const sentiments = [];
+            for (const tweet of tweets) {
+                try {
+                    const text = tweet.text;
+                    const response = await fetch('http://localhost:3000/sentiment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text }),
+                    });
+
+                    const data = await response.json();
+                    sentiments.push({ sentiment: data.sentiment, confidence: data.confidence });
+                } catch (error) {
+                    console.error('Error analyzing sentiment:', error);
+                    sentiments.push({ sentiment: 'neutral', confidence: 0 });
+                }
+            }
+            return sentiments;
+        }
+
+        function displayResults(tweets, sentiments) {
+            const tweetContainer = document.getElementById('tweets');
+            const sentimentSummary = document.getElementById('sentimentSummary');
+
+            tweetContainer.innerHTML = '';
+            sentimentSummary.innerHTML = '';
+
+            if (!tweets.length) {
+                tweetContainer.innerHTML = '<p>No tweets found for the given query.</p>';
+                return;
+            }
+
+            let positive = 0, negative = 0, neutral = 0;
+
+            tweets.forEach((tweet, index) => {
+                const sentiment = sentiments[index] || { sentiment: 'neutral', confidence: 0 };
+                if (sentiment.sentiment === 'Positive') positive++;
+                else if (sentiment.sentiment === 'Negative') negative++;
+                else neutral++;
+
+                tweetContainer.innerHTML += `
+                    <div class="tweet p-3 border rounded mb-3">
+                        <p><strong>Tweet:</strong> ${tweet.text}</p>
+                        <p><strong>Sentiment:</strong> ${sentiment.sentiment} (${(sentiment.confidence * 100).toFixed(2)}%)</p>
+                    </div>
+                    <div class="w-full h-0.5 bg-blue-400 my-5"></div>
+                `;
+            });
+
+            const total = positive + negative + neutral;
+            sentimentSummary.innerHTML = `
+                <h3>Sentiment Summary</h3>
+                <p>Positive: ${((positive / total) * 100).toFixed(2)}%</p>
+                <p>Negative: ${((negative / total) * 100).toFixed(2)}%</p>
+                <p>Neutral: ${((neutral / total) * 100).toFixed(2)}%</p>
+            `;
+        }
+    </script>
+</body>
+</html>
